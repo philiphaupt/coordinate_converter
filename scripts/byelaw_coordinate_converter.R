@@ -24,7 +24,8 @@ library(tmap)
 # the order of lat and long does not matter! But it has to be called lat* or long starting with caps at this point - may improve this in due course.
 # the data must finish with a number, not  a denomiator! e.g. do not put an s at the end of the coordiantes, for example, it will not work
 # read in data, for example
-dat_for_conversion <- read_csv("./EastMargateSands_test.csv")
+dir <- "C:/Users/Phillip Haupt/Documents/GIS/byelaw_areas"
+dat_for_conversion <- read_csv(paste0(dir, "./EastMargateSands_test.csv"))
 dat_for_conversion %>% glimpse()
 
 # or make it like this
@@ -34,32 +35,8 @@ dat_for_conversion <- tibble(
   long = c("1d21.447", "1.26.946", "1.26.946", "1.21.447")
 )
 
-
-# Step 2) Load the function to convert the coordinates
-# function: converts a column of latitude or longtiude degrees - minutes-decimal sceconeds into decimal degrees
-conversion_fn <-  function(dat) { # feed in data
-  
-  stringr::str_split_fixed(string = as.character(dat), #make sure that the data is character format
-                                     pattern =  "[[:punct:]|[:alpha:]]", # split the data wafter each punctuation mark or alphabet letter
-                                     n = 3) %>% #into 3 column (d,m,ds)
-  as_tibble() %>% #convert to tibble
-  dplyr::rename(d = V1,#supply appropriate names (d = degrees)
-                m60 = V2, #(minutes out of 60)
-                ds = V3) %>% #decimal second 
-  mutate(dm = as.numeric(m60)*100/60, # converts 60-mitues to decimal minutes: out of 100
-         dds = as.numeric(paste0("0.",ds)),#stick a 0. infron t of the decimal seconds so that we can add it to the new decimal minutes
-         dd_ms = dm+dds) %>% #add the latter two together
-  mutate(dd_m = stringr::str_split_fixed(string = as.character(dd_ms), # split them again so taht we can paste them neatly into the correct decimal degree format i.e. we need to loose some punctuation as it only expects a point after the degrees
-                                             pattern =  "[[:punct:]|[:alpha:]]",
-                                             n = 2)[,1],
-         dd_s = stringr::str_split_fixed(string = as.character(dd_ms),
-                                             pattern =  "[[:punct:]|[:alpha:]]",
-                                             n = 2)[,2],
-         dd = as.numeric(paste0(d, ".", dd_m, dd_s))
-  ) %>% select(dd) # drop all the workings and original data keeping only the converted decimal degrees.
-
-}
-
+# step 2
+source("./scripts/ddm_to_dd_converter.R")
 
 # Step 3) Run the function for the data
 # 3.1) convert names to lower caps
@@ -106,3 +83,4 @@ tmap::tm_shape(output_poly_sf)+
 
 # 
 sf::write_sf(output_poly_sf, dsn = "./output_polygon.gpkg", layer = "polygon_from_converted_coordinates")
+getwd()
